@@ -151,67 +151,67 @@ class Strategy(var cs:CandleSeries, var name:String = null, var initialCapital:F
       
     }
     
+  }
+  
+ def simulateVotingStrategy(start:Int, finish:Int, voting_thresh:Float) ={
+    firstCandle = candles(start)
+    lastCandle = candles(finish)
+    //Var reseting
+    stocks = 0f
+    funds = initialCapital
+    tradeList.clear()
+    activeTradesTest.clear()
+    historicTest.clear()
+    var action = 0
     
-    // ------------------------------ FIM DE TESTE ----------------------------
-    
-//    for(i <- start  to candles.length-1){
-//      //Check stop profit and loss
-//      //Outdated--------------------------------------------------------
-////      for(trade <- activeTrades){
-////        if(checkStopLoss(trade, i)){
-////          println("Stop Loss activated")
-////          //Terminate the trade
-////          var stopLossPrice = ((100 - stopLoss)/100) * trade.price 
-////          sell(stopLossPrice, trade, i)
-////          //Remove trade from activeTrades
-////          activeTrades.remove(activeTrades.indexOf(trade))
-////        }else if(checkStopProfit(trade, i)){
-////          println("Stop Profit activated")
-////          //Terminate the trade
-////          var stopProfitPrice = ((100 + stopProfit)/100) * trade.price 
-////          sell(stopProfitPrice, trade, i)
-////          //Remove trade from activeTrades
-////          activeTrades.remove(activeTrades.indexOf(trade))
-////        }
-////      }
-//      for(rule <- entryRuleList){
-//        if(rule.shouldAct(i)){
-//          var Buy = funds
-//          var amountB = funds
-//          var amountS = Buy / candles(i).close //Change for different entry prices
-//          var price = candles(i).close
-//          if(checkFunds(Buy) && Buy != 0){
-//            var t = new Trade("Buy", candles(i), amountB, amountS, price)
-//            tradeList.append(t)
-//            activeTradesTest.append(t)
-//            funds = funds - Buy
-//            stocks = stocks + amountS
-//            historicTest.append((t, funds, stocks))
-//          } 
-//        }
-//      }
-//      for(rule <- exitRuleList){
-//        if(rule.shouldAct(i)){
-//          var Sell = stocks
-//          var amountB = stocks * candles(i).close
-//          var amountS = stocks
-//          var price = candles(i).close
-//          if(checkStocks(Sell) && Sell >= 0.001f){
-//             var t = new Trade("Sell", candles(i), amountB, amountS, price)
-//             tradeList.append(t)
-//             //Add link between trades ------------------------------------------------------------------
-//             //t.setLink(activeTradesTest.last)
-//             //activeTradesTest.last.setLink(t)
-//             //Remove from active trades ----------------------------------------------------------------
-//             activeTradesTest.remove(0)
-//             funds = funds + amountB
-//             stocks = stocks - amountB/candles(i).close
-//             historicTest.append((t, funds, stocks))
-//          }
-//        }
-//      }
-//      
-//    }
+    for((candle,i) <- candles.zipWithIndex){
+      if(i >= start & i <= finish){
+        action = 0
+        for(rule <- entryRuleList){
+          if(rule.shouldAct(i)) action = action + 1 
+        }
+        for(rule <- exitRuleList){
+          if(rule.shouldAct(i)) action = action - 1
+        }
+        var dec = (2*action).toFloat / (exitRuleList.length + entryRuleList.length).toFloat
+        if(math.abs(dec) > voting_thresh){
+          if(dec < 0){
+            //SELL
+            var Sell = stocks
+            var amountB = stocks * candles(i).close
+            var amountS = stocks
+            var price = candle.close
+            if(checkStocks(Sell) && Sell >= 0.001f){
+               var t = new Trade("Sell", candle, amountB, amountS, price)
+               tradeList.append(t)
+               //Add link between trades ------------------------------------------------------------------
+               //t.setLink(activeTradesTest.last)
+               //activeTradesTest.last.setLink(t)
+               //Remove from active trades ----------------------------------------------------------------
+               activeTradesTest.remove(0)
+               funds = funds + amountB
+               stocks = stocks - amountB/candle.close
+               historicTest.append((t, funds, stocks))
+            } 
+          }else if(dec > 0){
+            //BUY
+            var Buy = funds
+            var amountB = funds
+            var amountS = Buy / candle.close //Change for different entry prices
+            var price = candle.close
+            if(checkFunds(Buy) && Buy != 0){
+              var t = new Trade("Buy", candle, amountB, amountS, price)
+              tradeList.append(t)
+              activeTradesTest.append(t)
+              funds = funds - Buy
+              stocks = stocks + amountS
+              historicTest.append((t, funds, stocks))
+            }
+          }
+        }
+        
+      }
+    }
   }
   
 
